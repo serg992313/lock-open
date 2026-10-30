@@ -15,8 +15,8 @@ h1{margin:0;font-size:20px;font-weight:700;letter-spacing:.2px}
 .ring{width:176px;height:176px;border-radius:50%;display:grid;place-items:center;border:3px solid var(--c,#4b5875);
 background:radial-gradient(circle,color-mix(in srgb,var(--c,#4b5875) 18%,transparent),transparent 70%);transition:.35s}
 .ring svg{width:84px;height:84px;stroke:var(--c,#6b7894);fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;transition:.35s}
-.ring .sh{transition:transform .35s;transform-origin:8px 11px}.open .sh{transform:translate(0,-2.2px) rotate(-24deg)}
-.big{font-size:30px;font-weight:800;color:var(--c,var(--mu))}.sub{color:var(--mu);font-size:14px;min-height:20px}
+.ring .po{display:none}.ring.open .po{display:inline}.ring.open .pc{display:none}
+.big{font-size:28px;font-weight:800;color:var(--c,var(--mu))}.sub{color:var(--mu);font-size:14px;min-height:20px}
 .pill{display:inline-flex;gap:7px;align-items:center;padding:6px 14px;border-radius:99px;background:var(--card);border:1px solid var(--line);font-size:14px;font-weight:600}
 .pill i{width:8px;height:8px;border-radius:50%;background:var(--pc,#4b5875)}
 .btns{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -36,7 +36,7 @@ input{width:100%;margin-top:12px;font:18px monospace;padding:13px;border-radius:
 .stale .v,.stale .big{opacity:.55}.foot{text-align:center;color:var(--mu);font-size:12px}
 </style></head><body><main id="m">
 <header><h1>Входная дверь</h1><div class="link" id="lk"><span class="dot"></span><span id="lt">нет связи</span></div></header>
-<section class="hero"><div class="ring" id="ring"><svg viewBox="0 0 24 24"><g class="sh"><path d="M8 11V7.5a4 4 0 0 1 8 0V11"/></g><rect x="5" y="11" width="14" height="10" rx="2.4"/><path d="M12 15v2.4"/></svg></div>
+<section class="hero"><div class="ring" id="ring"><svg viewBox="0 0 24 24"><path class="pc" d="M7 11V7a5 5 0 0 1 10 0v4"/><path class="po" d="M7 11V7a5 5 0 0 1 9.9-1"/><rect x="4" y="11" width="16" height="10.5" rx="2.4"/><path d="M12 15.2v2.6"/></svg></div>
 <div class="big" id="big">—</div><div class="pill" id="door"><i></i><span>дверь: —</span></div><div class="sub" id="sub">Нажмите «Подключиться»</div></section>
 <div class="btns" id="btns"><button id="bn">Подключиться</button></div>
 <div class="msg" id="s"></div>
@@ -83,11 +83,11 @@ function render(d,stale){ // d = {f,b12,b3,v12,t}
  const m=$('m');m.classList.toggle('stale',!!stale);
  $('ring').style.setProperty('--c',stale?'#6b7894':locked?'var(--ok)':'var(--warn)');
  $('ring').classList.toggle('open',!locked);
- $('big').textContent=locked?'Закрыт':'Открыт';$('big').style.setProperty('--c',locked?'var(--ok)':'var(--warn)');
+ $('big').textContent=locked?'Замок закрыт':'Замок открыт';$('big').style.setProperty('--c',locked?'var(--ok)':'var(--warn)');
  const dp=$('door');dp.style.setProperty('--pc',door?'var(--warn)':'var(--ok)');dp.querySelector('span').textContent=door?'дверь открыта':'дверь закрыта';
  $('info').hidden=false;
  $('mn').innerHTML=mains?'есть':'<span style="color:var(--warn)">нет, на батарее</span>';
- $('v12').innerHTML=d.v12>5?(d.v12/100).toFixed(1)+' В':'—';
+ $('v12').innerHTML=d.v12>300?(d.v12/100).toFixed(1)+' В':'—';
  batt('b12','b12b',d.b12);batt('b3','b3b',d.b3);
  const extra=[];if(f&8)extra.push('режим симуляции');if(!(f&16))extra.push('автозакрытие выключено');
  $('ft').textContent=extra.join(' · ');
