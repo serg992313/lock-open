@@ -1,17 +1,57 @@
 <!doctype html><html lang="ru"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Замок BLE</title>
-<style>body{margin:0;background:#0b1220;color:#e7ecf5;font:17px -apple-system,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:18px}
-button{font:600 22px -apple-system,sans-serif;border:0;border-radius:24px;padding:26px 54px;background:#2563eb;color:#fff}
-button:disabled{opacity:.5}input{font:16px monospace;padding:12px;border-radius:12px;border:1px solid #334;background:#121a29;color:#fff;text-align:center;width:200px}
-#s{min-height:24px;text-align:center;max-width:320px}</style></head><body>
-<button id="b">Открыть замок</button>
-<input id="k" type="password" inputmode="numeric" placeholder="PIN"><div id="s"></div>
-<script>
-const STATE_U='6e400005-b5a3-f393-e0a9-e50e24dcca9e';
-const SVC='6e400001-b5a3-f393-e0a9-e50e24dcca9e',NON='6e400002-b5a3-f393-e0a9-e50e24dcca9e',AUTH='6e400003-b5a3-f393-e0a9-e50e24dcca9e',STAT='6e400004-b5a3-f393-e0a9-e50e24dcca9e';
-const k=document.getElementById('k'),s=document.getElementById('s'),b=document.getElementById('b');
-k.value=localStorage.getItem('bk')||'';
-let dev=null;
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a1020"><title>Входная дверь</title>
+<style>
+:root{--bg:#0a1020;--card:#121a2e;--line:#22304d;--tx:#e9eef9;--mu:#8091b0;--ok:#34d399;--warn:#fbbf24;--bad:#f87171;--acc:#3b82f6}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:radial-gradient(120% 70% at 50% 0,#14203d 0,var(--bg) 60%) fixed;color:var(--tx);
+font:16px -apple-system,system-ui,sans-serif;min-height:100vh;padding:max(18px,env(safe-area-inset-top)) 16px max(24px,env(safe-area-inset-bottom))}
+main{max-width:440px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+header{display:flex;justify-content:space-between;align-items:center}
+h1{margin:0;font-size:20px;font-weight:700;letter-spacing:.2px}
+.link{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--mu)}
+.dot{width:9px;height:9px;border-radius:50%;background:#4b5875}.on .dot{background:var(--ok);box-shadow:0 0 10px var(--ok)}
+.hero{display:flex;flex-direction:column;align-items:center;gap:10px;padding:26px 0 8px}
+.ring{width:176px;height:176px;border-radius:50%;display:grid;place-items:center;border:3px solid var(--c,#4b5875);
+background:radial-gradient(circle,color-mix(in srgb,var(--c,#4b5875) 18%,transparent),transparent 70%);transition:.35s}
+.ring svg{width:84px;height:84px;stroke:var(--c,#6b7894);fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;transition:.35s}
+.ring .sh{transition:transform .35s;transform-origin:8px 11px}.open .sh{transform:translate(0,-2.2px) rotate(-24deg)}
+.big{font-size:30px;font-weight:800;color:var(--c,var(--mu))}.sub{color:var(--mu);font-size:14px;min-height:20px}
+.pill{display:inline-flex;gap:7px;align-items:center;padding:6px 14px;border-radius:99px;background:var(--card);border:1px solid var(--line);font-size:14px;font-weight:600}
+.pill i{width:8px;height:8px;border-radius:50%;background:var(--pc,#4b5875)}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+button{font:700 19px -apple-system,system-ui,sans-serif;border:0;border-radius:20px;padding:20px 8px;color:#fff;transition:.15s}
+button:active{transform:scale(.97)}button:disabled{opacity:.45}
+#bo{background:linear-gradient(180deg,#3b82f6,#2563eb)}#bc{background:#1b2742;border:1px solid var(--line)}
+#bn{grid-column:1/3;background:linear-gradient(180deg,#3b82f6,#2563eb)}
+.msg{min-height:22px;text-align:center;font-size:15px;font-weight:600}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px}
+.card.w{grid-column:1/3}
+.k{font-size:12px;letter-spacing:1px;color:var(--mu);text-transform:uppercase;margin-bottom:6px}
+.v{font-size:22px;font-weight:700}.v small{font-size:13px;color:var(--mu);font-weight:500;margin-left:6px}
+.bar{height:7px;border-radius:5px;background:#0b1326;margin-top:10px;overflow:hidden}.bar b{display:block;height:100%;width:0;border-radius:5px;background:var(--ok);transition:.4s}
+details{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px}summary{color:var(--mu);font-size:14px}
+input{width:100%;margin-top:12px;font:18px monospace;padding:13px;border-radius:12px;border:1px solid var(--line);background:#0b1326;color:#fff;text-align:center}
+.stale .v,.stale .big{opacity:.55}.foot{text-align:center;color:var(--mu);font-size:12px}
+</style></head><body><main id="m">
+<header><h1>Входная дверь</h1><div class="link" id="lk"><span class="dot"></span><span id="lt">нет связи</span></div></header>
+<section class="hero"><div class="ring" id="ring"><svg viewBox="0 0 24 24"><g class="sh"><path d="M8 11V7.5a4 4 0 0 1 8 0V11"/></g><rect x="5" y="11" width="14" height="10" rx="2.4"/><path d="M12 15v2.4"/></svg></div>
+<div class="big" id="big">—</div><div class="pill" id="door"><i></i><span>дверь: —</span></div><div class="sub" id="sub">Нажмите «Подключиться»</div></section>
+<div class="btns" id="btns"><button id="bn">Подключиться</button></div>
+<div class="msg" id="s"></div>
+<section class="grid" id="info" hidden>
+<div class="card"><div class="k">Сеть 220 В</div><div class="v" id="mn">—</div></div>
+<div class="card"><div class="k">Шина 12 В</div><div class="v" id="v12">—</div></div>
+<div class="card w"><div class="k">Батареи 1 + 2</div><div class="v" id="b12">—</div><div class="bar"><b id="b12b"></b></div></div>
+<div class="card w"><div class="k">Батарея 3</div><div class="v" id="b3">—</div><div class="bar"><b id="b3b"></b></div></div>
+</section>
+<details><summary>PIN доступа</summary><input id="k" type="password" inputmode="numeric" placeholder="PIN" autocomplete="off"></details>
+<div class="foot" id="ft"></div>
+</main><script>
+const SVC='6e400001-b5a3-f393-e0a9-e50e24dcca9e',NON='6e400002-b5a3-f393-e0a9-e50e24dcca9e',AUTH='6e400003-b5a3-f393-e0a9-e50e24dcca9e',STAT='6e400004-b5a3-f393-e0a9-e50e24dcca9e',STATE_U='6e400005-b5a3-f393-e0a9-e50e24dcca9e';
+const $=i=>document.getElementById(i),k=$('k');
+k.value=localStorage.getItem('bk')||'';k.onchange=()=>localStorage.setItem('bk',k.value);
 // Pure-JS HMAC-SHA256: Web Crypto is missing on non-HTTPS pages.
 function sha256(m){const K=[];let p=2;while(K.length<64){let q=true;for(let i=2;i*i<=p;i++)if(p%i==0){q=false;break}if(q)K.push((Math.pow(p,1/3)%1)*4294967296|0);p++}
 const H=[];p=2;while(H.length<8){let q=true;for(let i=2;i*i<=p;i++)if(p%i==0){q=false;break}if(q)H.push((Math.pow(p,.5)%1)*4294967296|0);p++}
@@ -28,27 +68,68 @@ async function sign(keyBytes,msg){
   if(window.crypto&&crypto.subtle){const key=await crypto.subtle.importKey('raw',keyBytes,{name:'HMAC',hash:'SHA-256'},false,['sign']);return new Uint8Array(await crypto.subtle.sign('HMAC',key,msg))}
   return hmacJs(keyBytes,msg)}
 
-const hex=h=>new Uint8Array(h.match(/../g).map(x=>parseInt(x,16)));
-async function open(){
-  if(k.value.length<4){s.textContent='Введите PIN';return}
-  b.disabled=true;s.textContent='Подключение...';
-  try{
-    if(!dev)dev=await navigator.bluetooth.requestDevice({filters:[{services:[SVC]}]});
-    const g=dev.gatt.connected?dev.gatt:await dev.gatt.connect();
-    const svc=await g.getPrimaryService(SVC);
-    let stTxt='';try{const sb=(await (await svc.getCharacteristic(STATE_U)).readValue()).getUint8(0);stTxt='Замок: '+((sb&1)?'закрыт':'открыт')+', дверь: '+((sb&2)?'открыта':'закрыта')+'. '}catch(e){}
-    const non=new Uint8Array((await (await svc.getCharacteristic(NON)).readValue()).buffer);
-    const mac=await sign(sha256(new TextEncoder().encode(k.value)),non);
-    const st=await svc.getCharacteristic(STAT);await st.startNotifications();
-    const res=new Promise(r=>st.addEventListener('characteristicvaluechanged',e=>r(e.target.value.getUint8(0)),{once:true}));
-    await (await svc.getCharacteristic(AUTH)).writeValueWithResponse(mac);
-    const v=await Promise.race([res,new Promise(r=>setTimeout(()=>r(-1),4000))]);
-    s.textContent=stTxt+(v==1?'Открыто':v==2?'Заблокировано на минуту':v==3?'PIN не задан в приложении на Mac':v==0?'Неверный PIN':'Нет ответа');
-    if(v==1||v==0&&false)localStorage.setItem('bk',k.value);
-    g.disconnect();
-  }catch(e){s.textContent='Ошибка: '+e.message;dev=null}
-  b.disabled=false;
+
+const MSG={1:['Открыто','ok'],4:['Закрыто','ok'],5:['Уже в этом положении','mu'],6:['Дверь открыта: закрыть нельзя','warn'],2:['Заблокировано на минуту','bad'],3:['PIN не задан в приложении на Mac','bad'],0:['Неверный PIN','bad']};
+let dev=null,svc=null,chStat=null,idle=null,last=null;
+const say=(t,c)=>{const e=$('s');e.textContent=t||'';e.style.color=c?`var(--${c})`:''};
+function pct(v){const T=[[3.0,0],[3.3,5],[3.5,20],[3.6,35],[3.7,50],[3.8,62],[3.9,75],[4.0,87],[4.1,95],[4.2,100]];
+ if(v<=T[0][0])return 0;if(v>=4.2)return 100;for(let i=1;i<T.length;i++)if(v<=T[i][0]){const[a,b]=T[i-1],[c,d]=T[i];return Math.round(b+(v-a)/(c-a)*(d-b))}return 100}
+function batt(idv,bar,mv){const v=mv/1000;if(mv<500){$(idv).innerHTML='—';$(bar).style.width='0';return}
+ const p=pct(v);$(idv).innerHTML=v.toFixed(2)+' В<small>≈ '+p+'%</small>';const b=$(bar);b.style.width=p+'%';b.style.background=p<20?'var(--bad)':p<45?'var(--warn)':'var(--ok)'}
+function render(d,stale){ // d = {f,b12,b3,v12,t}
+ const f=d.f,locked=f&1,door=f&2,mains=f&4;
+ const m=$('m');m.classList.toggle('stale',!!stale);
+ $('ring').style.setProperty('--c',stale?'#6b7894':locked?'var(--ok)':'var(--warn)');
+ $('ring').classList.toggle('open',!locked);
+ $('big').textContent=locked?'Закрыт':'Открыт';$('big').style.setProperty('--c',locked?'var(--ok)':'var(--warn)');
+ const dp=$('door');dp.style.setProperty('--pc',door?'var(--warn)':'var(--ok)');dp.querySelector('span').textContent=door?'дверь открыта':'дверь закрыта';
+ $('info').hidden=false;
+ $('mn').innerHTML=mains?'есть':'<span style="color:var(--warn)">нет, на батарее</span>';
+ $('v12').innerHTML=d.v12>5?(d.v12/100).toFixed(1)+' В':'—';
+ batt('b12','b12b',d.b12);batt('b3','b3b',d.b3);
+ const extra=[];if(f&8)extra.push('режим симуляции');if(!(f&16))extra.push('автозакрытие выключено');
+ $('ft').textContent=extra.join(' · ');
+ $('sub').textContent=stale?'данные от '+new Date(d.t).toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'}):(extra.length?'':'');
+ if(!stale){$('sub').textContent=''}
 }
-b.onclick=open;
+function parse(dv){const g=i=>dv.byteLength>i+1?dv.getUint16(i,true):0;return{f:dv.getUint8(0),b12:g(1),b3:g(3),v12:g(5),t:Date.now()}}
+function setLink(on){$('lk').classList.toggle('on',on);$('lt').textContent=on?'на связи':'нет связи';
+ const bx=$('btns');
+ if(on){bx.innerHTML='<button id="bo">Открыть</button><button id="bc">Закрыть</button>';$('bo').onclick=()=>cmd(1);$('bc').onclick=()=>cmd(2)}
+ else{bx.innerHTML='<button id="bn">Подключиться</button>';$('bn').onclick=()=>connect()}}
+function touch(){clearTimeout(idle);idle=setTimeout(()=>{if(dev&&dev.gatt.connected)dev.gatt.disconnect()},60000)}
+async function connect(){
+ const bn=$('bn');if(bn)bn.disabled=true;say('Подключение…');
+ try{
+  if(!dev){dev=await navigator.bluetooth.requestDevice({filters:[{services:[SVC]}]});
+   dev.addEventListener('gattserverdisconnected',()=>{setLink(false);if(last)render(last,true);say('Связь закрыта (экономия заряда)','')})}
+  const g=dev.gatt.connected?dev.gatt:await dev.gatt.connect();
+  svc=await g.getPrimaryService(SVC);
+  const cs=await svc.getCharacteristic(STATE_U);
+  cs.addEventListener('characteristicvaluechanged',e=>{last=parse(e.target.value);localStorage.setItem('last',JSON.stringify(last));render(last,false)});
+  await cs.startNotifications();last=parse(await cs.readValue());localStorage.setItem('last',JSON.stringify(last));
+  chStat=await svc.getCharacteristic(STAT);await chStat.startNotifications();
+  setLink(true);render(last,false);say('');touch();
+ }catch(e){say('Ошибка: '+e.message,'bad');dev=null;setLink(false);if(bn)bn.disabled=false}
+}
+async function cmd(c){
+ if(k.value.length<4){say('Введите PIN ниже','warn');document.querySelector('details').open=true;return}
+ const bs=[$('bo'),$('bc')];bs.forEach(b=>b&&(b.disabled=true));touch();
+ try{
+  if(!dev||!dev.gatt.connected){await connect();if(!dev)return}
+  const non=new Uint8Array((await (await svc.getCharacteristic(NON)).readValue()).buffer);
+  const msg=new Uint8Array(17);msg.set(non);msg[16]=c;
+  const mac=await sign(sha256(new TextEncoder().encode(k.value)),msg);
+  const pkt=new Uint8Array(33);pkt[0]=c;pkt.set(mac,1);
+  const res=new Promise(r=>{const h=e=>{chStat.removeEventListener('characteristicvaluechanged',h);r(e.target.value.getUint8(0))};chStat.addEventListener('characteristicvaluechanged',h)});
+  await (await svc.getCharacteristic(AUTH)).writeValueWithResponse(pkt);
+  const v=await Promise.race([res,new Promise(r=>setTimeout(()=>r(-1),5000))]);
+  const m=MSG[v];say(m?m[0]:'Нет ответа',m?m[1]:'warn');
+  if(v==1||v==4)localStorage.setItem('bk',k.value);
+ }catch(e){say('Ошибка: '+e.message,'bad')}
+ [$('bo'),$('bc')].forEach(b=>b&&(b.disabled=false));
+}
+try{const l=JSON.parse(localStorage.getItem('last'));if(l){last=l;render(l,true)}}catch(e){}
+setLink(false);
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script></body></html>

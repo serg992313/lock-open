@@ -1,5 +1,5 @@
 // Cache the page so it opens without internet after one visit.
-const C='lock-v1';
+const C='lock-v2';
 self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(['./','index.html'])));self.skipWaiting()});
 self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));
 self.addEventListener('fetch',e=>{
