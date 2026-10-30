@@ -7,6 +7,7 @@ button:disabled{opacity:.5}input{font:16px monospace;padding:12px;border-radius:
 <button id="b">Открыть замок</button>
 <input id="k" type="password" inputmode="numeric" placeholder="PIN"><div id="s"></div>
 <script>
+const STATE_U='6e400005-b5a3-f393-e0a9-e50e24dcca9e';
 const SVC='6e400001-b5a3-f393-e0a9-e50e24dcca9e',NON='6e400002-b5a3-f393-e0a9-e50e24dcca9e',AUTH='6e400003-b5a3-f393-e0a9-e50e24dcca9e',STAT='6e400004-b5a3-f393-e0a9-e50e24dcca9e';
 const k=document.getElementById('k'),s=document.getElementById('s'),b=document.getElementById('b');
 k.value=localStorage.getItem('bk')||'';
@@ -35,14 +36,15 @@ async function open(){
     if(!dev)dev=await navigator.bluetooth.requestDevice({filters:[{services:[SVC]}]});
     const g=dev.gatt.connected?dev.gatt:await dev.gatt.connect();
     const svc=await g.getPrimaryService(SVC);
+    let stTxt='';try{const sb=(await (await svc.getCharacteristic(STATE_U)).readValue()).getUint8(0);stTxt='Замок: '+((sb&1)?'закрыт':'открыт')+', дверь: '+((sb&2)?'открыта':'закрыта')+'. '}catch(e){}
     const non=new Uint8Array((await (await svc.getCharacteristic(NON)).readValue()).buffer);
     const mac=await sign(sha256(new TextEncoder().encode(k.value)),non);
     const st=await svc.getCharacteristic(STAT);await st.startNotifications();
     const res=new Promise(r=>st.addEventListener('characteristicvaluechanged',e=>r(e.target.value.getUint8(0)),{once:true}));
     await (await svc.getCharacteristic(AUTH)).writeValueWithResponse(mac);
     const v=await Promise.race([res,new Promise(r=>setTimeout(()=>r(-1),4000))]);
-    s.textContent=v==1?'Открыто':v==2?'Заблокировано на минуту':v==0?'Неверный ключ':'Нет ответа';
-    if(v==1)localStorage.setItem('bk',k.value);
+    s.textContent=stTxt+(v==1?'Открыто':v==2?'Заблокировано на минуту':v==3?'PIN не задан в приложении на Mac':v==0?'Неверный PIN':'Нет ответа');
+    if(v==1||v==0&&false)localStorage.setItem('bk',k.value);
     g.disconnect();
   }catch(e){s.textContent='Ошибка: '+e.message;dev=null}
   b.disabled=false;
