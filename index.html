@@ -5,7 +5,6 @@ button{font:600 22px -apple-system,sans-serif;border:0;border-radius:24px;paddin
 button:disabled{opacity:.5}input{font:16px monospace;padding:12px;border-radius:12px;border:1px solid #334;background:#121a29;color:#fff;text-align:center;width:200px}
 #s{min-height:24px;text-align:center;max-width:320px}</style></head><body>
 <button id="b">Открыть замок</button>
-<button id="f" style="font-size:15px;padding:12px 24px;background:#1f2937">Настроить Face ID</button>
 <input id="k" type="password" inputmode="numeric" placeholder="PIN"><div id="s"></div>
 <script>
 const SVC='6e400001-b5a3-f393-e0a9-e50e24dcca9e',NON='6e400002-b5a3-f393-e0a9-e50e24dcca9e',AUTH='6e400003-b5a3-f393-e0a9-e50e24dcca9e',STAT='6e400004-b5a3-f393-e0a9-e50e24dcca9e';
@@ -48,28 +47,6 @@ async function open(){
   }catch(e){s.textContent='Ошибка: '+e.message;dev=null}
   b.disabled=false;
 }
-const f=document.getElementById('f');
-const faceId=localStorage.getItem('fid');
-const b64=u=>btoa(String.fromCharCode(...new Uint8Array(u)));
-const unb64=t=>Uint8Array.from(atob(t),c=>c.charCodeAt(0));
-f.textContent=faceId?'Face ID: включён (сбросить)':'Настроить Face ID';
-f.onclick=async()=>{
-  if(faceId){localStorage.removeItem('fid');location.reload();return}
-  try{
-    const c=await navigator.credentials.create({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),
-      rp:{name:'Замок'},user:{id:crypto.getRandomValues(new Uint8Array(16)),name:'lock',displayName:'Замок'},
-      pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],
-      authenticatorSelection:{authenticatorAttachment:'platform',userVerification:'required',residentKey:'preferred'},timeout:60000}});
-    localStorage.setItem('fid',b64(c.rawId));location.reload();
-  }catch(e){s.textContent='Face ID не настроен: '+e.message}
-};
-// Face ID gate before the BLE command (local check on this phone)
-async function gate(){
-  const id=localStorage.getItem('fid');if(!id)return true;
-  try{await navigator.credentials.get({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),
-    allowCredentials:[{type:'public-key',id:unb64(id)}],userVerification:'required',timeout:60000}});return true}
-  catch(e){s.textContent='Face ID не подтверждён';return false}
-}
-b.onclick=async()=>{if(await gate())open()};
+b.onclick=open;
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script></body></html>
